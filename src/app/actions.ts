@@ -147,20 +147,44 @@ export async function spinWheel(input: {
   const winner = pool.find((m) => m.id === winnerId)!;
   const index = input.poolIds.indexOf(winnerId); // -1 if client is out of date
 
-  // Retire the previous pick, promote the winner, record the week.
-  // (neon-http has no interactive transactions; these run sequentially, which
-  // is fine for a low-traffic club app.)
+  // IMPORTANT: read-only. We do NOT write here. Committing the pick before the
+  // reel lands would change "This week's pick" immediately (a Server Action
+  // re-renders the route on completion), spoiling the result. The client
+  // animates, then calls commitPick() once the reel has landed.
+  return { ok: true, movieId: winnerId, title: winner.title, index };
+}
+
+// Commit the pick after the reel has landed (host only): retire the previous
+// pick, promote the winner, and record the week.
+export async function commitPick(input: {
+  name: string;
+  movieId: string;
+}): Promise<ActionResult> {
+  requireDb();
+  const name = cleanName(input.name);
+  if (!isHost(name)) return { ok: false, error: "Only a host can spin the reel." };
+
+  // Only commit something that's actually still on the reel.
+  const rows = await db
+    .select()
+    .from(movies)
+    .where(and(eq(movies.id, input.movieId), eq(movies.status, "pool")))
+    .limit(1);
+  if (rows.length === 0) {
+    return { ok: false, error: "That movie is no longer on the reel." };
+  }
+
   await db.update(movies).set({ status: "watched" }).where(eq(movies.status, "current"));
-  await db.update(movies).set({ status: "current" }).where(eq(movies.id, winnerId));
+  await db.update(movies).set({ status: "current" }).where(eq(movies.id, input.movieId));
   await db.insert(weeks).values({
-    movieId: winnerId,
+    movieId: input.movieId,
     weekOf: mondayOf(new Date()),
     spunBy: name,
   });
 
   revalidatePath("/");
   revalidatePath("/history");
-  return { ok: true, movieId: winnerId, title: winner.title, index };
+  return { ok: true };
 }
 
 // --- Add a review ------------------------------------------------------------
@@ -198,6 +222,60 @@ export async function addReview(input: {
   });
 
   revalidatePath(`/movie/${input.movieId}`);
+  revalidatePath("/history");
+  return { ok: true };
+}
+
+// --- Edit a review (author only) ---------------------------------------------
+export async function editReview(input: {
+  reviewId: string;
+  name: string;
+  rating?: number | null;
+  body?: string | null;
+  letterboxdUrl?: string | null;
+}): Promise<ActionResult> {
+  requireDb();
+  const name = cleanName(input.name);
+  if (!name) return { ok: false, error: "Set your name first." };
+
+  const rows = await db
+    .select()
+    .from(reviews)
+    .where(eq(reviews.id, input.reviewId))
+    .limit(1);
+  const review = rows[0];
+  if (!review) return { ok: false, error: "That review no longer exists." };
+  // Honor-system ownership check (names aren't verified), same as the rest of
+  // the app. You can only edit a review under your own name.
+  if (review.author.trim().toLowerCase() !== name.toLowerCase()) {
+    return { ok: false, error: "You can only edit your own review." };
+  }
+
+  const rating =
+    typeof input.rating === "number" && input.rating >= 1 && input.rating <= 10
+      ? Math.round(input.rating)
+      : null;
+  const body = input.body?.trim() || null;
+  const url = input.letterboxdUrl?.trim() || null;
+
+  if (rating === null && !body && !url) {
+    return { ok: false, error: "Add a rating, some words, or a Letterboxd link." };
+  }
+  if (url && !/^https?:\/\/(www\.)?(letterboxd\.com|boxd\.it)\//i.test(url)) {
+    return { ok: false, error: "That doesn't look like a Letterboxd link." };
+  }
+
+  await db
+    .update(reviews)
+    .set({
+      rating,
+      body: body?.slice(0, 4000) ?? null,
+      letterboxdUrl: url,
+      editedAt: new Date(),
+    })
+    .where(eq(reviews.id, input.reviewId));
+
+  revalidatePath(`/movie/${review.movieId}`);
   revalidatePath("/history");
   return { ok: true };
 }

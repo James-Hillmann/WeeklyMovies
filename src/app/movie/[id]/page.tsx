@@ -3,11 +3,10 @@ import { notFound } from "next/navigation";
 import { getMovie, getReviews } from "@/lib/queries";
 import { isDbConfigured } from "@/db";
 import { Poster } from "@/components/poster";
-import { Stars } from "@/components/stars";
 import { ReviewForm } from "@/components/review-form";
+import { ReviewList, type ReviewView } from "@/components/review-list";
 import { SetupNotice } from "@/components/setup-notice";
 import { formatRuntime } from "@/lib/format";
-import type { Review } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +28,15 @@ export default async function MoviePage({
   if (!movie) notFound();
 
   const reviews = await getReviews(id);
+  const reviewViews: ReviewView[] = reviews.map((r) => ({
+    id: r.id,
+    author: r.author,
+    rating: r.rating,
+    body: r.body,
+    letterboxdUrl: r.letterboxdUrl,
+    createdAt: new Date(r.createdAt).toISOString(),
+    editedAt: r.editedAt ? new Date(r.editedAt).toISOString() : null,
+  }));
 
   return (
     <div className="space-y-8">
@@ -46,7 +54,9 @@ export default async function MoviePage({
           <div className="mt-2 text-xs inline-block border rounded-full px-2 py-0.5 text-[var(--muted)]">
             {STATUS_LABEL[movie.status] ?? movie.status}
           </div>
-          <div className="text-sm text-[var(--muted)] mt-2">added by {movie.addedBy}</div>
+          <div className="text-sm text-[var(--muted)] mt-2">
+            requested by {movie.addedBy}
+          </div>
         </div>
       </div>
 
@@ -59,51 +69,11 @@ export default async function MoviePage({
             ({reviews.length})
           </span>
         </h2>
-        {reviews.length === 0 ? (
-          <p className="text-sm text-[var(--muted)] mb-5">
-            No reviews yet. Be the first once you&apos;ve watched it.
-          </p>
-        ) : (
-          <ul className="space-y-4 mb-6">
-            {reviews.map((r) => (
-              <ReviewItem key={r.id} review={r} />
-            ))}
-          </ul>
-        )}
+
+        <ReviewList reviews={reviewViews} />
 
         <ReviewForm movieId={movie.id} />
       </section>
     </div>
-  );
-}
-
-function ReviewItem({ review }: { review: Review }) {
-  const when = new Date(review.createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  return (
-    <li className="card p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-medium text-sm">{review.author}</span>
-        <span className="text-xs text-[var(--muted)]">{when}</span>
-      </div>
-      {review.rating != null && (
-        <div className="mt-1">
-          <Stars rating={review.rating} />
-        </div>
-      )}
-      {review.body && <p className="text-sm mt-2 whitespace-pre-wrap">{review.body}</p>}
-      {review.letterboxdUrl && (
-        <a
-          className="link text-sm mt-2 inline-block"
-          href={review.letterboxdUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Read on Letterboxd
-        </a>
-      )}
-    </li>
   );
 }

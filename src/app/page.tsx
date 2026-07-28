@@ -38,6 +38,9 @@ export default async function Home() {
               <div className="text-sm text-[var(--muted)] mt-0.5">
                 {[current.year, formatRuntime(current.runtime)].filter(Boolean).join(" · ")}
               </div>
+              <div className="text-sm text-[var(--muted)]">
+                Requested by {current.addedBy}
+              </div>
               {current.overview && (
                 <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
               )}

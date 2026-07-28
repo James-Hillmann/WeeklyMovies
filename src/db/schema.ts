@@ -48,6 +48,8 @@ export const reviews = pgTable("reviews", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  // null until the author edits it (shown as Discord-style "(edited)").
+  editedAt: timestamp("edited_at", { withTimezone: true }),
 });
 
 export type Movie = typeof movies.$inferSelect;

@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:test": "dotenv -e .env.testdb -- next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
+    "db:push:test": "dotenv -e .env.testdb -- drizzle-kit push",
+    "db:reset:test": "node scripts/reset-testdb.mjs",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate"
   },
@@ -24,6 +27,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
