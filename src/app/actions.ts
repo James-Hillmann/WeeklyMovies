@@ -92,7 +92,7 @@ export async function spinWheel(input: {
 
   const pool = await db.select().from(movies).where(eq(movies.status, "pool"));
   if (pool.length === 0) {
-    return { ok: false, error: "Nothing on the wheel yet — add some movies." };
+    return { ok: false, error: "Nothing on the wheel yet. Add some movies." };
   }
 
   const poolIdSet = new Set(pool.map((m) => m.id));

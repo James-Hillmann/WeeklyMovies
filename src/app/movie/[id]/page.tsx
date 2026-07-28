@@ -101,7 +101,7 @@ function ReviewItem({ review }: { review: Review }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Read on Letterboxd →
+          Read on Letterboxd
         </a>
       )}
     </li>

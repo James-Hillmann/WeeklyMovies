@@ -3,6 +3,10 @@ import Link from "next/link";
 import "./globals.css";
 import { NameProvider } from "@/components/name-provider";
 import { WhoAmI } from "@/components/who-am-i";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+// Applies the saved theme before the page paints, so there's no flash.
+const themeScript = `(function(){try{if(localStorage.getItem('weeklymovies.theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "Weekly Movies",
@@ -17,6 +21,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <NameProvider>
           <header className="border-b">
@@ -31,6 +38,7 @@ export default function RootLayout({
                 <Link href="/history" className="hover:underline underline-offset-4">
                   History
                 </Link>
+                <ThemeToggle />
                 <WhoAmI />
               </nav>
             </div>

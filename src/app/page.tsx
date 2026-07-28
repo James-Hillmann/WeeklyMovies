@@ -42,7 +42,7 @@ export default async function Home() {
                 <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
               )}
               <Link href={`/movie/${current.id}`} className="link text-sm inline-block mt-3">
-                Watched it? Leave your review →
+                Watched it? Leave your review
               </Link>
             </div>
           </div>

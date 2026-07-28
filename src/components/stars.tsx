@@ -1,5 +1,5 @@
 // Renders a 1-10 rating as five stars (each star = 2 points, halves allowed).
-// Pure/presentational — safe in server or client components.
+// Pure/presentational, safe in server or client components.
 export function Stars({ rating, size = 16 }: { rating: number; size?: number }) {
   const clamped = Math.max(0, Math.min(10, rating));
   const outOfFive = clamped / 2; // 0..5

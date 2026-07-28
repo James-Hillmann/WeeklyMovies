@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (!tmdbConfigured()) {
-    // No key set — tell the client so it can fall back to free-text entry.
+    // No key set, so tell the client to fall back to free-text entry.
     return NextResponse.json({ configured: false, results: [] });
   }
   if (!q) {

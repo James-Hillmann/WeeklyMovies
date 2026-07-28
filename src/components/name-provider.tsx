@@ -9,7 +9,7 @@ import {
 } from "react";
 
 // The whole "who are you" story is just a name kept in localStorage. No
-// accounts, no passwords — fine for a private friend group. The name is sent
+// accounts, no passwords, fine for a private friend group. The name is sent
 // along with every write so we know who added / reviewed / spun.
 
 type NameContext = {

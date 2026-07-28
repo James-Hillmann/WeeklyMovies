@@ -70,7 +70,7 @@ export default async function HistoryPage() {
                         <li key={r.id} className="text-sm">
                           <span className="font-medium">{r.author}</span>
                           {r.body ? (
-                            <span className="text-[var(--muted)]"> — {r.body}</span>
+                            <span className="text-[var(--muted)]">: {r.body}</span>
                           ) : r.letterboxdUrl ? (
                             <a
                               className="link ml-1"
@@ -78,7 +78,7 @@ export default async function HistoryPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              Letterboxd →
+                              Letterboxd
                             </a>
                           ) : null}
                         </li>

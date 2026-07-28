@@ -3,7 +3,7 @@
 export function SetupNotice() {
   return (
     <div className="card p-5">
-      <h2 className="text-lg mb-2">Almost there — finish setup</h2>
+      <h2 className="text-lg mb-2">Finish setup</h2>
       <p className="text-sm text-[var(--muted)] mb-3">
         The database isn&apos;t connected yet. Once it is, this page becomes the
         movie wheel.

@@ -60,7 +60,12 @@ function Fallback({ title }: { title: string }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center text-center p-2"
-      style={{ background: "#efe9df", color: "var(--muted)", fontSize: 13, lineHeight: 1.25 }}
+      style={{
+        background: "var(--poster-fallback)",
+        color: "var(--muted)",
+        fontSize: 13,
+        lineHeight: 1.25,
+      }}
     >
       <span>{title}</span>
     </div>

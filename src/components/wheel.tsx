@@ -113,7 +113,7 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
     return (
       <div className="card p-6 text-center">
         <p className="text-[var(--muted)]">
-          Nothing on the wheel yet — add some movies below.
+          Nothing on the wheel yet. Add some movies below.
         </p>
       </div>
     );
@@ -150,7 +150,7 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
               : "none",
           }}
         >
-          <circle cx={CENTER} cy={CENTER} r={R - 1} fill="#fff" stroke="var(--border)" />
+          <circle cx={CENTER} cy={CENTER} r={R - 1} fill="var(--card)" stroke="var(--border)" />
           {pool.map((m, i) => {
             const start = i * segAngle;
             const end = start + segAngle;
@@ -161,7 +161,7 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
                 <path
                   d={segmentPath(start, end)}
                   fill={SEG_COLORS[i % SEG_COLORS.length]}
-                  stroke="#fff"
+                  stroke="var(--card)"
                   strokeWidth="1.5"
                 />
                 <text

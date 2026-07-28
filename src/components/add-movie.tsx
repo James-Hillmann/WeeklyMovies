@@ -110,7 +110,7 @@ export function AddMovie() {
               <li key={r.tmdbId}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-[#f2ede4]"
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-[var(--hover)]"
                   onClick={() => submit(r)}
                   disabled={busy}
                 >
@@ -127,13 +127,22 @@ export function AddMovie() {
                   ) : (
                     <span
                       className="rounded"
-                      style={{ width: 34, height: 51, background: "#efe9df", display: "inline-block" }}
+                      style={{
+                        width: 34,
+                        height: 51,
+                        background: "var(--poster-fallback)",
+                        display: "inline-block",
+                      }}
                     />
                   )}
                   <span className="min-w-0">
                     <span className="block truncate">{r.title}</span>
-                    {r.year && (
-                      <span className="block text-xs text-[var(--muted)]">{r.year}</span>
+                    {(r.year || r.director) && (
+                      <span className="block text-xs text-[var(--muted)] truncate">
+                        {[r.year ? String(r.year) : null, r.director ? `dir. ${r.director}` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
                     )}
                   </span>
                 </button>

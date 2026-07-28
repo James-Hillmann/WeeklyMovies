@@ -1,6 +1,6 @@
 // The wheel is host-only. HOST_NAMES is a comma-separated list of display
 // names allowed to spin (e.g. "james,alex"). Compared case-insensitively.
-// This is honor-system only — names aren't verified — which is fine for a
+// This is honor-system only (names aren't verified), which is fine for a
 // small private friend group.
 
 function hostList(): string[] {
