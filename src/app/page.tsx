@@ -1,65 +1,82 @@
-import Image from "next/image";
+import Link from "next/link";
+import { isDbConfigured } from "@/db";
+import { getCurrentMovie, getPool } from "@/lib/queries";
+import { Wheel } from "@/components/wheel";
+import { AddMovie } from "@/components/add-movie";
+import { PoolList } from "@/components/pool-list";
+import { Poster } from "@/components/poster";
+import { SetupNotice } from "@/components/setup-notice";
+import { formatRuntime } from "@/lib/format";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  if (!isDbConfigured) {
+    return <SetupNotice />;
+  }
+
+  const [current, pool] = await Promise.all([getCurrentMovie(), getPool()]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="space-y-12">
+      {/* This week's pick */}
+      <section>
+        <h2 className="text-lg mb-3">This week&apos;s pick</h2>
+        {current ? (
+          <div className="card p-4 flex gap-4">
+            <Link href={`/movie/${current.id}`} className="shrink-0">
+              <Poster src={current.posterUrl} title={current.title} width={120} height={180} />
+            </Link>
+            <div className="min-w-0">
+              <Link
+                href={`/movie/${current.id}`}
+                className="text-xl hover:underline underline-offset-2"
+                style={{ fontFamily: "var(--font-serif)" }}
+              >
+                {current.title}
+              </Link>
+              <div className="text-sm text-[var(--muted)] mt-0.5">
+                {[current.year, formatRuntime(current.runtime)].filter(Boolean).join(" · ")}
+              </div>
+              {current.overview && (
+                <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
+              )}
+              <Link href={`/movie/${current.id}`} className="link text-sm inline-block mt-3">
+                Watched it? Leave your review →
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="card p-5 text-center text-[var(--muted)]">
+            No pick yet this week. Give the wheel a spin.
+          </div>
+        )}
+      </section>
+
+      {/* The wheel */}
+      <section>
+        <h2 className="text-lg mb-1 text-center">The wheel</h2>
+        <p className="text-sm text-[var(--muted)] text-center mb-5">
+          Every Monday, a host spins to pick what we watch.
+        </p>
+        <Wheel pool={pool.map((m) => ({ id: m.id, title: m.title }))} />
+      </section>
+
+      {/* Add a movie */}
+      <section>
+        <AddMovie />
+      </section>
+
+      {/* The pool */}
+      <PoolList
+        pool={pool.map((m) => ({
+          id: m.id,
+          title: m.title,
+          year: m.year,
+          posterUrl: m.posterUrl,
+          addedBy: m.addedBy,
+        }))}
+      />
     </div>
   );
 }
