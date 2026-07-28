@@ -57,7 +57,7 @@ export default async function Home() {
       <section>
         <h2 className="text-lg mb-1 text-center">The wheel</h2>
         <p className="text-sm text-[var(--muted)] text-center mb-5">
-          Every Monday, a host spins to pick what we watch.
+          Every Monday, Maxx spins to pick what we watch.
         </p>
         <Wheel pool={pool.map((m) => ({ id: m.id, title: m.title }))} />
       </section>
