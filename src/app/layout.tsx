@@ -20,14 +20,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
         <NameProvider>
           <header className="border-b">
-            <div className="mx-auto w-full max-w-2xl px-5 py-4 flex items-baseline justify-between gap-4">
+            <div className="mx-auto w-full max-w-2xl px-5 py-4 flex items-center justify-between gap-4">
               <Link href="/" className="text-xl" style={{ fontFamily: "var(--font-serif)" }}>
                 Weekly Movies
               </Link>
@@ -38,8 +38,10 @@ export default function RootLayout({
                 <Link href="/history" className="hover:underline underline-offset-4">
                   History
                 </Link>
-                <ThemeToggle />
                 <WhoAmI />
+                <span className="-mr-1.5">
+                  <ThemeToggle />
+                </span>
               </nav>
             </div>
           </header>
