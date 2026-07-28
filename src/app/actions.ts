@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db, isDbConfigured } from "@/db";
 import { movies, reviews, weeks } from "@/db/schema";
 import { getRuntime } from "@/lib/tmdb";
@@ -98,7 +98,50 @@ export async function spinWheel(input: {
   const poolIdSet = new Set(pool.map((m) => m.id));
   // Prefer the exact list the client is showing so the animation lands right.
   const displayed = input.poolIds.filter((id) => poolIdSet.has(id));
-  const candidates = displayed.length > 0 ? displayed : pool.map((m) => m.id);
+  let candidates = displayed.length > 0 ? displayed : pool.map((m) => m.id);
+
+  // Shuffled round-robin: everyone with a movie on the reel gets a turn each
+  // pass, but the order is random per pass (not a predictable rotation).
+  // We rebuild the current pass from the pick history and only allow people
+  // who haven't gone yet this pass; once the pass is full it resets.
+  const poolPeople = pool.map((m) => m.addedBy.trim().toLowerCase());
+  const poolPeopleSet = new Set(poolPeople);
+  const history = await db
+    .select({ person: movies.addedBy })
+    .from(weeks)
+    .innerJoin(movies, eq(weeks.movieId, movies.id))
+    .orderBy(asc(weeks.spunAt)); // oldest first
+  const picks = history.map((h) => h.person.trim().toLowerCase());
+  const lastPerson = picks.length ? picks[picks.length - 1] : null;
+
+  const passSoFar = new Set<string>();
+  for (const p of picks) {
+    if (!poolPeopleSet.has(p)) continue; // person has no movies now; ignore
+    if (passSoFar.has(p)) {
+      // Shouldn't normally happen, but if the pool changed and we see a repeat
+      // before the pass filled, treat it as the start of a new pass.
+      passSoFar.clear();
+    }
+    passSoFar.add(p);
+    if (passSoFar.size === poolPeopleSet.size) passSoFar.clear(); // pass complete
+  }
+
+  const eligible = new Set(poolPeople.filter((p) => !passSoFar.has(p)));
+  // Don't kick off a fresh pass on the same person who just went, if we can help it.
+  if (eligible.size > 1 && lastPerson) eligible.delete(lastPerson);
+
+  const byPerson = new Map(pool.map((m) => [m.id, m.addedBy.trim().toLowerCase()]));
+  const roundRobin = candidates.filter((id) => eligible.has(byPerson.get(id) ?? ""));
+  if (roundRobin.length > 0) {
+    candidates = roundRobin;
+  } else if (lastPerson) {
+    // Round-robin couldn't be honored (e.g. the pool changed mid-cycle). At the
+    // very least, try not to land on the same person two weeks in a row.
+    const notLast = candidates.filter((id) => byPerson.get(id) !== lastPerson);
+    if (notLast.length > 0) candidates = notLast;
+  }
+  // If nothing is left either way, we leave candidates as-is rather than stall
+  // (e.g. only one person has movies on the reel).
 
   const winnerId = candidates[Math.floor(Math.random() * candidates.length)];
   const winner = pool.find((m) => m.id === winnerId)!;
