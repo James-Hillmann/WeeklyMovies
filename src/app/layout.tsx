@@ -4,6 +4,7 @@ import "./globals.css";
 import { NameProvider } from "@/components/name-provider";
 import { WhoAmI } from "@/components/who-am-i";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 // Applies the saved theme before the page paints, so there's no flash.
 const themeScript = `(function(){try{if(localStorage.getItem('weeklymovies.theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`;
@@ -28,7 +29,14 @@ export default function RootLayout({
         <NameProvider>
           <header className="border-b">
             <div className="mx-auto w-full max-w-2xl px-5 py-4 flex items-center justify-between gap-4">
-              <Link href="/" className="text-xl" style={{ fontFamily: "var(--font-serif)" }}>
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-xl"
+                style={{ fontFamily: "var(--font-serif)" }}
+              >
+                <span className="text-[var(--accent)]">
+                  <Logo size={24} />
+                </span>
                 Weekly Movies
               </Link>
               <nav className="flex items-center gap-4 text-sm">
