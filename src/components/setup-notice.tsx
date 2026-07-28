@@ -6,7 +6,7 @@ export function SetupNotice() {
       <h2 className="text-lg mb-2">Finish setup</h2>
       <p className="text-sm text-[var(--muted)] mb-3">
         The database isn&apos;t connected yet. Once it is, this page becomes the
-        movie wheel.
+        movie reel.
       </p>
       <ol className="text-sm list-decimal pl-5 space-y-1">
         <li>

@@ -3,54 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useName } from "./name-provider";
+import { Poster } from "./poster";
 import { checkHost, spinWheel } from "@/app/actions";
 
-type PoolMovie = { id: string; title: string };
+type PoolMovie = { id: string; title: string; posterUrl: string | null };
 
-// Muted, low-saturation segment colors that sit on the paper background.
-const SEG_COLORS = [
-  "#cbb9a3",
-  "#a9bda3",
-  "#cba9a1",
-  "#b3aac2",
-  "#c6c2a0",
-  "#a6bcc4",
-  "#d0b6ab",
-  "#b6c1a6",
-];
-
-const SIZE = 320;
-const R = SIZE / 2;
-const CENTER = R;
-
-function polar(angleDeg: number, radius: number) {
-  // angle measured clockwise from the top (12 o'clock)
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: CENTER + radius * Math.cos(rad), y: CENTER + radius * Math.sin(rad) };
-}
-
-function segmentPath(start: number, end: number) {
-  const a = polar(start, R - 2);
-  const b = polar(end, R - 2);
-  const large = end - start > 180 ? 1 : 0;
-  return `M ${CENTER} ${CENTER} L ${a.x} ${a.y} A ${R - 2} ${R - 2} 0 ${large} 1 ${b.x} ${b.y} Z`;
-}
-
-function short(title: string) {
-  return title.length > 20 ? title.slice(0, 19) + "…" : title;
-}
+// Card + gap sizing for the reel.
+const CARD_W = 116;
+const CARD_H = 174;
+const GAP = 12;
+const ITEM = CARD_W + GAP;
+const SPIN_MS = 4500;
 
 export function Wheel({ pool }: { pool: PoolMovie[] }) {
   const { name } = useName();
   const router = useRouter();
   const [canSpin, setCanSpin] = useState(false);
-  const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
+  const [translate, setTranslate] = useState(0);
+  const [animating, setAnimating] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
-  const rotationRef = useRef(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Ask the server (honor-system) whether this name may spin.
+  const n = pool.length;
+  // How many times to repeat the strip so there's a long, satisfying scroll.
+  const loops = Math.max(3, Math.ceil(28 / Math.max(1, n)));
+  const reps = loops + 1;
+
   useEffect(() => {
     let alive = true;
     if (!name) {
@@ -62,9 +42,6 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
       alive = false;
     };
   }, [name]);
-
-  const n = pool.length;
-  const segAngle = n > 0 ? 360 / n : 0;
 
   async function spin() {
     if (!name || spinning || n === 0) return;
@@ -80,113 +57,138 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
       setMsg(result.error);
       return;
     }
-
-    // If the winner isn't in our current list (pool changed under us), just
-    // refresh to show the new state.
     if (result.index < 0) {
       router.refresh();
       setSpinning(false);
-      setMsg(`This week: ${result.title}`);
+      setMsg(`This week's pick: ${result.title}`);
       return;
     }
 
-    // Land the winner's segment center under the pointer at the top.
-    const center = result.index * segAngle + segAngle / 2;
-    const jitter = (Math.random() - 0.5) * Math.max(0, segAngle - 8);
-    const turns = 5;
-    const current = rotationRef.current;
-    // Smallest non-negative target congruent to (-center) that adds >= turns.
-    const base = 360 * turns + (((-center - (current % 360)) % 360) + 360) % 360;
-    const next = current + base - jitter;
-    rotationRef.current = next;
-    setRotation(next);
+    const vw = viewportRef.current?.offsetWidth ?? 640;
+    const center = vw / 2 - CARD_W / 2;
+    const winnerIndex = result.index;
 
-    // Reveal after the CSS transition finishes.
+    // Start with the winner centered in the first strip, then scroll `loops`
+    // strips further so it glides past and lands on the identical poster.
+    const startX = center - winnerIndex * ITEM;
+    const targetX = center - (loops * n + winnerIndex) * ITEM;
+
+    setAnimating(false);
+    setTranslate(startX);
+    // Two frames so the browser paints the jump before the eased transition.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setAnimating(true);
+        setTranslate(targetX);
+      }),
+    );
+
     window.setTimeout(() => {
       setSpinning(false);
       setWinner(result.title);
       router.refresh();
-    }, 4200);
+    }, SPIN_MS + 150);
   }
 
   if (n === 0) {
     return (
       <div className="card p-6 text-center">
         <p className="text-[var(--muted)]">
-          Nothing on the wheel yet. Add some movies below.
+          Nothing on the reel yet. Add some movies below.
         </p>
       </div>
     );
   }
 
+  const cards = [];
+  for (let r = 0; r < reps; r++) {
+    for (let i = 0; i < n; i++) {
+      const m = pool[i];
+      cards.push(
+        <div
+          key={`${r}-${m.id}`}
+          className="shrink-0 rounded-md overflow-hidden border"
+          style={{ width: CARD_W, height: CARD_H }}
+        >
+          <Poster src={m.posterUrl} title={m.title} width={CARD_W} height={CARD_H} />
+        </div>,
+      );
+    }
+  }
+
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: SIZE, height: SIZE }}>
-        {/* pointer */}
+      <div
+        ref={viewportRef}
+        className="relative w-full overflow-hidden rounded-lg border"
+        style={{ height: CARD_H + 24, background: "var(--card)" }}
+      >
+        {/* the moving strip */}
         <div
-          className="absolute left-1/2 -translate-x-1/2 z-10"
-          style={{ top: -2 }}
-          aria-hidden
-        >
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: "11px solid transparent",
-              borderRight: "11px solid transparent",
-              borderTop: "18px solid var(--accent)",
-            }}
-          />
-        </div>
-
-        <svg
-          width={SIZE}
-          height={SIZE}
-          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="flex items-center absolute top-0"
           style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: spinning
-              ? "transform 4s cubic-bezier(0.15, 0.85, 0.2, 1)"
+            height: CARD_H + 24,
+            gap: GAP,
+            paddingLeft: 0,
+            transform: `translateX(${translate}px)`,
+            transition: animating
+              ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.75, 0.08, 1)`
               : "none",
+            willChange: "transform",
           }}
         >
-          <circle cx={CENTER} cy={CENTER} r={R - 1} fill="var(--card)" stroke="var(--border)" />
-          {pool.map((m, i) => {
-            const start = i * segAngle;
-            const end = start + segAngle;
-            const mid = start + segAngle / 2;
-            const labelPos = polar(mid, R * 0.62);
-            return (
-              <g key={m.id}>
-                <path
-                  d={segmentPath(start, end)}
-                  fill={SEG_COLORS[i % SEG_COLORS.length]}
-                  stroke="var(--card)"
-                  strokeWidth="1.5"
-                />
-                <text
-                  x={labelPos.x}
-                  y={labelPos.y}
-                  fill="#2b2622"
-                  fontSize={n > 10 ? 10 : 12}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  transform={`rotate(${mid}, ${labelPos.x}, ${labelPos.y})`}
-                  style={{ pointerEvents: "none" }}
-                >
-                  {short(m.title)}
-                </text>
-              </g>
-            );
-          })}
-          <circle cx={CENTER} cy={CENTER} r={16} fill="var(--card)" stroke="var(--border)" />
-        </svg>
+          {cards}
+        </div>
+
+        {/* edge fades */}
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0"
+          style={{
+            width: 56,
+            background: "linear-gradient(to right, var(--card), transparent)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0"
+          style={{
+            width: 56,
+            background: "linear-gradient(to left, var(--card), transparent)",
+          }}
+        />
+
+        {/* center slot marker */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md"
+          style={{ width: CARD_W + 8, height: CARD_H + 8, border: "2px solid var(--accent)" }}
+        />
+        <div
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+          style={{
+            top: 0,
+            width: 0,
+            height: 0,
+            borderLeft: "8px solid transparent",
+            borderRight: "8px solid transparent",
+            borderTop: "12px solid var(--accent)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+          style={{
+            bottom: 0,
+            width: 0,
+            height: 0,
+            borderLeft: "8px solid transparent",
+            borderRight: "8px solid transparent",
+            borderBottom: "12px solid var(--accent)",
+          }}
+        />
       </div>
 
       <div className="mt-5 text-center min-h-[2.5rem]">
         {canSpin ? (
           <button className="btn btn-accent" onClick={spin} disabled={spinning}>
-            {spinning ? "Spinning…" : "Spin the wheel"}
+            {spinning ? "Spinning…" : "Spin the reel"}
           </button>
         ) : name ? (
           <p className="text-sm text-[var(--muted)]">

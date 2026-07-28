@@ -69,7 +69,7 @@ export function AddMovie() {
       setQuery("");
       setResults([]);
       setOpen(false);
-      setMsg(`Added “${movie.title}” to the wheel.`);
+      setMsg(`Added “${movie.title}” to the reel.`);
     } else {
       setMsg(result.error);
     }

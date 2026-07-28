@@ -40,7 +40,7 @@ export function PoolList({ pool }: { pool: PoolMovie[] }) {
   return (
     <section>
       <h2 className="text-lg mb-3">
-        On the wheel{" "}
+        On the reel{" "}
         <span className="text-[var(--muted)] text-sm font-normal">
           ({pool.length})
         </span>

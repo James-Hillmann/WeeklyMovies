@@ -12,7 +12,7 @@ const themeScript = `(function(){try{if(localStorage.getItem('weeklymovies.theme
 export const metadata: Metadata = {
   title: "Weekly Movies",
   description:
-    "Our little movie club. Add movies, spin the wheel every Monday, and share what you thought.",
+    "Our little movie club. Add movies, spin the reel every Monday, and share what you thought.",
 };
 
 export default function RootLayout({

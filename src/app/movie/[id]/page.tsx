@@ -12,7 +12,7 @@ import type { Review } from "@/db/schema";
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
-  pool: "On the wheel",
+  pool: "On the reel",
   current: "This week's pick",
   watched: "Watched",
 };

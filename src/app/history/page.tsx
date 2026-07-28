@@ -24,7 +24,7 @@ export default async function HistoryPage() {
 
       {history.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">
-          Nothing here yet. Spin the wheel to start the record.
+          Nothing here yet. Spin the reel to start the record.
         </p>
       ) : (
         <ul className="space-y-4">

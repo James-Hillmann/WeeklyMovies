@@ -48,18 +48,24 @@ export default async function Home() {
           </div>
         ) : (
           <div className="card p-5 text-center text-[var(--muted)]">
-            No pick yet this week. Give the wheel a spin.
+            No pick yet this week. Give the reel a spin.
           </div>
         )}
       </section>
 
-      {/* The wheel */}
+      {/* The reel */}
       <section>
-        <h2 className="text-lg mb-1 text-center">The wheel</h2>
+        <h2 className="text-lg mb-1 text-center">The reel</h2>
         <p className="text-sm text-[var(--muted)] text-center mb-5">
           Every Monday, Maxx spins to pick what we watch.
         </p>
-        <Wheel pool={pool.map((m) => ({ id: m.id, title: m.title }))} />
+        <Wheel
+          pool={pool.map((m) => ({
+            id: m.id,
+            title: m.title,
+            posterUrl: m.posterUrl,
+          }))}
+        />
       </section>
 
       {/* Add a movie */}
