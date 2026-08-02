@@ -77,7 +77,16 @@ export async function addMovie(input: {
 
 // --- Spin the wheel (host only) ---------------------------------------------
 export type SpinResult =
-  | { ok: true; movieId: string; title: string; index: number }
+  | {
+      ok: true;
+      movieId: string;
+      title: string;
+      index: number;
+      year: number | null;
+      runtime: number | null;
+      posterUrl: string | null;
+      addedBy: string;
+    }
   | { ok: false; error: string };
 
 export async function spinWheel(input: {
@@ -151,7 +160,16 @@ export async function spinWheel(input: {
   // reel lands would change "This week's pick" immediately (a Server Action
   // re-renders the route on completion), spoiling the result. The client
   // animates, then calls commitPick() once the reel has landed.
-  return { ok: true, movieId: winnerId, title: winner.title, index };
+  return {
+    ok: true,
+    movieId: winnerId,
+    title: winner.title,
+    index,
+    year: winner.year,
+    runtime: winner.runtime,
+    posterUrl: winner.posterUrl,
+    addedBy: winner.addedBy,
+  };
 }
 
 // Commit the pick after the reel has landed (host only): retire the previous
