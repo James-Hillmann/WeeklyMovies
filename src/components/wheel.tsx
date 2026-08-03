@@ -24,8 +24,8 @@ function discordMessage(won: WonInfo): string {
     .filter(Boolean)
     .join(" · ");
   const lines = [
-    "🎡 **THE REEL HAS SPOKEN**",
-    `This week we're watching ${titlePart} 🎬`,
+    "**THE REEL HAS SPOKEN**",
+    `This week we're watching ${titlePart}`,
     `-# ${meta}`,
     "Watch by Sunday, then rate it on the site.",
   ];
