@@ -15,10 +15,16 @@ routine with one shared page.
 - **Add movies.** Search by title and the poster, year, runtime, and director
   fill in from TMDB (the director helps tell remakes apart) — or just type a
   title if you don't have a key set up. They land in the pool "on the reel".
-- **Spin the reel.** Only people listed in `HOST_NAMES` see the Spin button. The
-  reel scrolls like a slot machine and lands on a movie, which becomes *This
-  week's pick* and gets recorded in History. The result isn't shown until the
-  reel actually lands (no spoilers).
+- **Undo a mistake.** Whoever added a movie can remove it (a "remove" link on its
+  card) while it's still on the reel; hosts can remove any. Once a movie has been
+  picked it stays, so History is never lost.
+- **Spin the reel.** Only hosts see the Spin button — the names in `HOST_NAMES`,
+  plus a built-in `admin` login (see below). The reel scrolls like a slot machine
+  and lands on a movie, which becomes *This week's pick* and gets recorded in
+  History. The result isn't shown until the reel actually lands (no spoilers).
+- **Share to Discord.** After a spin, the roller gets a "Copy Discord message"
+  button that copies a formatted announcement (with the poster) to paste in your
+  channel.
 - **Fair picking.** The reel goes through everyone who has a movie on it before
   anyone repeats, in a random order each pass, and it never lands on the same
   person two weeks in a row (unless they're the only one left).
@@ -29,10 +35,10 @@ routine with one shared page.
 - **Light / dim.** A sun/moon toggle in the header switches between the warm
   paper theme and a low-glare dark mode. Your choice is remembered per device.
 
-> Heads up: the name and host list are honor-system (names aren't verified), so
-> "your own review" really means "a review under your name". That's intentional
-> for a small trusted group — only share the link with your friends; it isn't a
-> security boundary.
+> Heads up: names are honor-system (they aren't verified), so "your own review"
+> or "movies you added" really means "under your name" — and anyone can type
+> `admin`. That's intentional for a small trusted group — only share the link
+> with your friends; it isn't a security boundary.
 
 ## Tech
 
@@ -54,7 +60,11 @@ npm run dev
 | --------------- | -------- | -------------------------------------------------------------------- |
 | `DATABASE_URL`  | Yes      | Neon Postgres connection string.                                     |
 | `TMDB_API_KEY`  | No       | Free TMDB v3 key for posters, metadata, and directors. Blank = plain titles. |
-| `HOST_NAMES`    | No       | Comma-separated names allowed to spin (e.g. `james,alex`), case-insensitive. Blank = anyone can spin. |
+| `HOST_NAMES`    | No       | Comma-separated names allowed to spin and manage the reel (e.g. `james,alex`), case-insensitive. Blank = anyone can spin. |
+
+**Admin login:** the name `admin` is always a host, baked into the code — no
+config needed. Set your name to `admin` for quick edits (spin, remove any movie),
+on both local and the deployed site.
 
 **Get a database:** create a free project at [neon.tech](https://neon.tech) and
 copy its connection string, or provision Neon from the Vercel Marketplace.

@@ -313,15 +313,34 @@ export async function markWatched(input: {
   return { ok: true };
 }
 
+// Remove a movie from the reel. Allowed for the person who added it (to undo a
+// mistake) or any host. Only pool movies — once picked, a movie stays so History
+// is never lost.
 export async function removeMovie(input: {
   name: string;
   movieId: string;
 }): Promise<ActionResult> {
   requireDb();
-  if (!isHost(cleanName(input.name))) {
-    return { ok: false, error: "Only a host can remove movies." };
+  const name = cleanName(input.name);
+  if (!name) return { ok: false, error: "Set your name first." };
+
+  const rows = await db
+    .select()
+    .from(movies)
+    .where(eq(movies.id, input.movieId))
+    .limit(1);
+  const movie = rows[0];
+  if (!movie) return { ok: true }; // already gone
+
+  if (movie.status !== "pool") {
+    return { ok: false, error: "That movie has already been picked — it stays in history." };
   }
-  // Only allow removing pool movies (keep history intact).
+
+  const owns = movie.addedBy.trim().toLowerCase() === name.toLowerCase();
+  if (!owns && !isHost(name)) {
+    return { ok: false, error: "You can only remove movies you added." };
+  }
+
   await db
     .delete(movies)
     .where(and(eq(movies.id, input.movieId), eq(movies.status, "pool")));

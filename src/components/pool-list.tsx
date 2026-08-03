@@ -31,6 +31,8 @@ export function PoolList({ pool }: { pool: PoolMovie[] }) {
 
   if (pool.length === 0) return null;
 
+  const myName = name?.trim().toLowerCase() ?? "";
+
   async function remove(id: string) {
     if (!name) return;
     await removeMovie({ name, movieId: id });
@@ -57,7 +59,7 @@ export function PoolList({ pool }: { pool: PoolMovie[] }) {
                 {m.year ? ` (${m.year})` : ""}
               </Link>
               <div className="text-xs text-[var(--muted)] mt-0.5">added by {m.addedBy}</div>
-              {isHost && (
+              {(isHost || m.addedBy.trim().toLowerCase() === myName) && (
                 <button
                   className="text-xs text-[var(--muted)] underline underline-offset-2 mt-1"
                   onClick={() => remove(m.id)}
