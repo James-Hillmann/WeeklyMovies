@@ -44,8 +44,11 @@ export default async function Home() {
               {current.overview && (
                 <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
               )}
-              <Link href={`/movie/${current.id}`} className="link text-sm inline-block mt-3">
-                Watched it? Leave your review
+              <Link
+                href={`/movie/${current.id}`}
+                className="btn btn-accent mt-3"
+              >
+                Leave a review
               </Link>
             </div>
           </div>
