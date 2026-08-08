@@ -4,6 +4,7 @@ import { getMovie, getReviews } from "@/lib/queries";
 import { isDbConfigured } from "@/db";
 import { avatarForName } from "@/lib/discord";
 import { Poster } from "@/components/poster";
+import { Avatar } from "@/components/avatar";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewList, type ReviewView } from "@/components/review-list";
 import { SetupNotice } from "@/components/setup-notice";
@@ -29,8 +30,8 @@ export default async function MoviePage({
   if (!movie) notFound();
 
   const reviews = await getReviews(id);
-  // Resolve each reviewer's Discord photo once.
-  const names = [...new Set(reviews.map((r) => r.author))];
+  // Resolve the requester's + each reviewer's Discord photo once.
+  const names = [...new Set([movie.addedBy, ...reviews.map((r) => r.author)])];
   const avatars = new Map(
     await Promise.all(
       names.map(
@@ -55,23 +56,35 @@ export default async function MoviePage({
         ← Back
       </Link>
 
-      <div className="card p-4 flex gap-4">
-        <Poster src={movie.posterUrl} title={movie.title} width={120} height={180} />
-        <div className="min-w-0">
-          <h1 className="text-2xl">{movie.title}</h1>
-          <div className="text-sm text-[var(--muted)] mt-1">
-            {[movie.year, formatRuntime(movie.runtime)].filter(Boolean).join(" · ")}
-          </div>
-          <div className="mt-2 text-xs inline-block border rounded-full px-2 py-0.5 text-[var(--muted)]">
-            {STATUS_LABEL[movie.status] ?? movie.status}
-          </div>
-          <div className="text-sm text-[var(--muted)] mt-2">
-            requested by {movie.addedBy}
+      <div className="card p-5">
+        <div className="flex gap-5">
+          <Poster src={movie.posterUrl} title={movie.title} width={120} height={180} />
+          <div className="min-w-0 flex-1">
+            <span className="text-xs border rounded-full px-2 py-0.5 text-[var(--muted)]">
+              {STATUS_LABEL[movie.status] ?? movie.status}
+            </span>
+            <h1 className="text-2xl mt-2 leading-tight">{movie.title}</h1>
+            <div className="text-sm text-[var(--muted)] mt-1">
+              {[movie.year, formatRuntime(movie.runtime)].filter(Boolean).join(" · ")}
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <Avatar
+                name={movie.addedBy}
+                url={avatars.get(movie.addedBy.trim().toLowerCase()) ?? null}
+                size={24}
+              />
+              <span className="text-sm">
+                <span className="text-[var(--muted)]">Requested by </span>
+                {movie.addedBy}
+              </span>
+            </div>
+
+            {movie.overview && (
+              <p className="text-sm mt-3">{movie.overview}</p>
+            )}
           </div>
         </div>
       </div>
-
-      {movie.overview && <p className="text-sm">{movie.overview}</p>}
 
       <section>
         <h2 className="text-lg mb-3">
