@@ -5,8 +5,10 @@ import { Wheel } from "@/components/wheel";
 import { AddMovie } from "@/components/add-movie";
 import { PoolList } from "@/components/pool-list";
 import { Poster } from "@/components/poster";
+import { Avatar } from "@/components/avatar";
 import { SetupNotice } from "@/components/setup-notice";
 import { formatRuntime } from "@/lib/format";
+import { avatarForName } from "@/lib/discord";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,7 @@ export default async function Home() {
   }
 
   const [current, pool] = await Promise.all([getCurrentMovie(), getPool()]);
+  const requesterAvatar = current ? await avatarForName(current.addedBy) : null;
 
   return (
     <div className="space-y-12">
@@ -38,8 +41,12 @@ export default async function Home() {
               <div className="text-sm text-[var(--muted)] mt-0.5">
                 {[current.year, formatRuntime(current.runtime)].filter(Boolean).join(" · ")}
               </div>
-              <div className="text-sm text-[var(--muted)]">
-                Requested by {current.addedBy}
+              <div className="flex items-center gap-2 mt-1">
+                <Avatar name={current.addedBy} url={requesterAvatar} size={22} />
+                <span className="text-sm">
+                  <span className="text-[var(--muted)]">Requested by </span>
+                  {current.addedBy}
+                </span>
               </div>
               {current.overview && (
                 <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
