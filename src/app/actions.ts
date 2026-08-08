@@ -6,6 +6,7 @@ import { db, isDbConfigured } from "@/db";
 import { movies, reviews, weeks } from "@/db/schema";
 import { getRuntime } from "@/lib/tmdb";
 import { isHost } from "@/lib/hosts";
+import { announcePick, announceReview, avatarForName } from "@/lib/discord";
 
 function requireDb() {
   if (!isDbConfigured) {
@@ -37,6 +38,14 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 // host list to every browser. The spin action re-checks server-side anyway.
 export async function checkHost(name: string): Promise<boolean> {
   return isHost(cleanName(name));
+}
+
+// The Discord profile photo for a name, so the site can show it (monogram is
+// the fallback). Returns null if unmapped / no bot token / default avatar.
+export async function getAvatar(name: string): Promise<string | null> {
+  const clean = cleanName(name);
+  if (!clean) return null;
+  return avatarForName(clean);
 }
 
 // --- Add a movie to the pool -------------------------------------------------
@@ -192,12 +201,23 @@ export async function commitPick(input: {
     return { ok: false, error: "That movie is no longer on the reel." };
   }
 
+  const movie = rows[0];
   await db.update(movies).set({ status: "watched" }).where(eq(movies.status, "current"));
   await db.update(movies).set({ status: "current" }).where(eq(movies.id, input.movieId));
   await db.insert(weeks).values({
     movieId: input.movieId,
     weekOf: mondayOf(new Date()),
     spunBy: name,
+  });
+
+  // Announce the pick in Discord (no-op if no webhook is configured).
+  await announcePick({
+    title: movie.title,
+    year: movie.year,
+    runtime: movie.runtime,
+    posterUrl: movie.posterUrl,
+    overview: movie.overview,
+    addedBy: movie.addedBy,
   });
 
   revalidatePath("/");
@@ -238,6 +258,29 @@ export async function addReview(input: {
     body: body?.slice(0, 4000) ?? null,
     letterboxdUrl: url,
   });
+
+  // Announce the review in Discord (no-op if no webhook is configured). Only on
+  // new reviews — edits don't re-post, to avoid spamming the channel.
+  const movieRows = await db
+    .select({
+      title: movies.title,
+      year: movies.year,
+      posterUrl: movies.posterUrl,
+    })
+    .from(movies)
+    .where(eq(movies.id, input.movieId))
+    .limit(1);
+  if (movieRows[0]) {
+    await announceReview({
+      author,
+      movieTitle: movieRows[0].title,
+      movieYear: movieRows[0].year,
+      posterUrl: movieRows[0].posterUrl,
+      rating,
+      body,
+      letterboxdUrl: url,
+    });
+  }
 
   revalidatePath(`/movie/${input.movieId}`);
   revalidatePath("/history");

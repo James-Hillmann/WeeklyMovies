@@ -1,14 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useName } from "./name-provider";
 import { NameDialog } from "./name-dialog";
+import { getAvatar } from "@/app/actions";
 
-// Header identity control: a small monogram avatar + your name. Click to change.
+// Header identity control: your Discord photo (or a monogram fallback) + name.
+// Click to change your name.
 export function WhoAmI() {
   const { name, ready } = useName();
   const [open, setOpen] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const initial = name?.trim().charAt(0).toUpperCase() ?? "";
+
+  useEffect(() => {
+    let alive = true;
+    setAvatar(null);
+    if (name) getAvatar(name).then((url) => alive && setAvatar(url));
+    return () => {
+      alive = false;
+    };
+  }, [name]);
 
   return (
     <>
@@ -23,21 +35,33 @@ export function WhoAmI() {
           <span style={{ width: 22, height: 22 }} />
         ) : name ? (
           <>
-            <span
-              aria-hidden
-              className="inline-flex items-center justify-center rounded-full shrink-0"
-              style={{
-                width: 22,
-                height: 22,
-                background: "var(--accent)",
-                color: "var(--accent-ink)",
-                fontSize: 11,
-                fontWeight: 600,
-                lineHeight: 1,
-              }}
-            >
-              {initial}
-            </span>
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatar}
+                alt=""
+                width={22}
+                height={22}
+                className="rounded-full shrink-0 object-cover"
+                style={{ width: 22, height: 22 }}
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="inline-flex items-center justify-center rounded-full shrink-0"
+                style={{
+                  width: 22,
+                  height: 22,
+                  background: "var(--accent)",
+                  color: "var(--accent-ink)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                {initial}
+              </span>
+            )}
             <span>{name}</span>
           </>
         ) : (
