@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMovie, getReviews } from "@/lib/queries";
 import { isDbConfigured } from "@/db";
+import { avatarForName } from "@/lib/discord";
 import { Poster } from "@/components/poster";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewList, type ReviewView } from "@/components/review-list";
@@ -28,9 +29,19 @@ export default async function MoviePage({
   if (!movie) notFound();
 
   const reviews = await getReviews(id);
+  // Resolve each reviewer's Discord photo once.
+  const names = [...new Set(reviews.map((r) => r.author))];
+  const avatars = new Map(
+    await Promise.all(
+      names.map(
+        async (n) => [n.trim().toLowerCase(), await avatarForName(n)] as const,
+      ),
+    ),
+  );
   const reviewViews: ReviewView[] = reviews.map((r) => ({
     id: r.id,
     author: r.author,
+    avatarUrl: avatars.get(r.author.trim().toLowerCase()) ?? null,
     rating: r.rating,
     body: r.body,
     letterboxdUrl: r.letterboxdUrl,

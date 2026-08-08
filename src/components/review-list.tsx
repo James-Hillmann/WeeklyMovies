@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useName } from "./name-provider";
 import { StarInput } from "./star-input";
 import { Stars } from "./stars";
+import { Avatar } from "./avatar";
 import { editReview } from "@/app/actions";
 
 export type ReviewView = {
   id: string;
   author: string;
+  avatarUrl: string | null;
   rating: number | null;
   body: string | null;
   letterboxdUrl: string | null;
@@ -92,9 +94,10 @@ function ReviewItem({ review }: { review: ReviewView }) {
 
   return (
     <li className="card p-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <Avatar name={review.author} url={review.avatarUrl} size={28} />
         <span className="font-medium text-sm">{review.author}</span>
-        <span className="text-xs text-[var(--muted)] flex items-center gap-2">
+        <span className="text-xs text-[var(--muted)] ml-auto flex items-center gap-2">
           <span>
             {shortDate(review.createdAt)}
             {review.editedAt && (
