@@ -5,6 +5,8 @@ import { isDbConfigured } from "@/db";
 import { avatarForName } from "@/lib/discord";
 import { Poster } from "@/components/poster";
 import { Avatar } from "@/components/avatar";
+import { WatchProviders } from "@/components/watch-providers";
+import { getWatchProviders, watchRegion } from "@/lib/tmdb";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewList, type ReviewView } from "@/components/review-list";
 import { SetupNotice } from "@/components/setup-notice";
@@ -29,6 +31,7 @@ export default async function MoviePage({
   const movie = await getMovie(id);
   if (!movie) notFound();
 
+  const watch = movie.tmdbId ? await getWatchProviders(movie.tmdbId) : null;
   const reviews = await getReviews(id);
   // Resolve the requester's + each reviewer's Discord photo once.
   const names = [...new Set([movie.addedBy, ...reviews.map((r) => r.author)])];
@@ -85,6 +88,20 @@ export default async function MoviePage({
           </div>
         </div>
       </div>
+
+      {watch && watch.stream.length > 0 && (
+        <section>
+          <h2 className="text-lg mb-3">
+            Streaming{" "}
+            <span className="text-sm font-normal text-[var(--muted)]">
+              ({watchRegion()})
+            </span>
+          </h2>
+          <div className="card p-4">
+            <WatchProviders info={watch} />
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg mb-3">

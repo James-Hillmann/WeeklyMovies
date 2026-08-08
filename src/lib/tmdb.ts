@@ -96,3 +96,63 @@ export async function getRuntime(tmdbId: number): Promise<number | null> {
     return null;
   }
 }
+
+// Streaming / rent / buy availability (data via JustWatch, per region).
+export type WatchProvider = { name: string; logoUrl: string };
+export type WatchInfo = {
+  stream: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
+  link: string | null; // JustWatch page for this title
+};
+
+export function watchRegion(): string {
+  return (process.env.TMDB_WATCH_REGION || "US").trim().toUpperCase();
+}
+
+export async function getWatchProviders(tmdbId: number): Promise<WatchInfo | null> {
+  const key = process.env.TMDB_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(
+      `${API}/movie/${tmdbId}/watch/providers?api_key=${key}`,
+      { next: { revalidate: 60 * 60 * 24 } }, // availability changes slowly
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: Record<
+        string,
+        {
+          link?: string;
+          flatrate?: Array<{ provider_name: string; logo_path: string; display_priority: number }>;
+          rent?: Array<{ provider_name: string; logo_path: string; display_priority: number }>;
+          buy?: Array<{ provider_name: string; logo_path: string; display_priority: number }>;
+        }
+      >;
+    };
+    const region = data.results?.[watchRegion()];
+    if (!region) return null;
+
+    const map = (
+      arr?: Array<{ provider_name: string; logo_path: string; display_priority: number }>,
+    ): WatchProvider[] =>
+      (arr ?? [])
+        .slice()
+        .sort((a, b) => a.display_priority - b.display_priority)
+        .map((p) => ({
+          name: p.provider_name,
+          logoUrl: `${TMDB_IMG}/w92${p.logo_path}`,
+        }));
+
+    const info: WatchInfo = {
+      stream: map(region.flatrate),
+      rent: map(region.rent),
+      buy: map(region.buy),
+      link: region.link ?? null,
+    };
+    if (!info.stream.length && !info.rent.length && !info.buy.length) return null;
+    return info;
+  } catch {
+    return null;
+  }
+}

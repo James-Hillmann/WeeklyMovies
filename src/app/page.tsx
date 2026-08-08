@@ -6,9 +6,11 @@ import { AddMovie } from "@/components/add-movie";
 import { PoolList } from "@/components/pool-list";
 import { Poster } from "@/components/poster";
 import { Avatar } from "@/components/avatar";
+import { WatchProviders } from "@/components/watch-providers";
 import { SetupNotice } from "@/components/setup-notice";
 import { formatRuntime } from "@/lib/format";
 import { avatarForName } from "@/lib/discord";
+import { getWatchProviders } from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,8 @@ export default async function Home() {
 
   const [current, pool] = await Promise.all([getCurrentMovie(), getPool()]);
   const requesterAvatar = current ? await avatarForName(current.addedBy) : null;
+  const currentWatch =
+    current?.tmdbId ? await getWatchProviders(current.tmdbId) : null;
 
   return (
     <div className="space-y-12">
@@ -51,6 +55,7 @@ export default async function Home() {
               {current.overview && (
                 <p className="text-sm mt-2 line-clamp-3">{current.overview}</p>
               )}
+              {currentWatch && <WatchProviders info={currentWatch} compact />}
               <Link
                 href={`/movie/${current.id}`}
                 className="btn btn-accent mt-3"
