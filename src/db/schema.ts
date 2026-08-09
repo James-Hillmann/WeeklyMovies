@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   date,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 // A movie someone added to the club. Status walks: pool -> current -> watched.
@@ -44,6 +45,9 @@ export const reviews = pgTable("reviews", {
   author: text("author").notNull(),
   rating: integer("rating"), // 1-10 (half-stars stored as odd/even out of 10), nullable
   body: text("body"),
+  // When true, the written comment is hidden behind a spoiler reveal (site and
+  // Discord). The rating itself always shows.
+  isSpoiler: boolean("is_spoiler").notNull().default(false),
   letterboxdUrl: text("letterboxd_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

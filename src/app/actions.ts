@@ -232,6 +232,7 @@ export async function addReview(input: {
   rating?: number | null; // 1-10, or null
   body?: string | null;
   letterboxdUrl?: string | null;
+  isSpoiler?: boolean;
 }): Promise<ActionResult> {
   requireDb();
   const author = cleanName(input.name);
@@ -243,6 +244,8 @@ export async function addReview(input: {
       : null;
   const body = input.body?.trim() || null;
   const url = input.letterboxdUrl?.trim() || null;
+  // Spoiler only means anything when there's a written comment to hide.
+  const isSpoiler = Boolean(input.isSpoiler) && !!body;
 
   if (rating === null && !body && !url) {
     return { ok: false, error: "Add a rating, some words, or a Letterboxd link." };
@@ -256,11 +259,12 @@ export async function addReview(input: {
     author,
     rating,
     body: body?.slice(0, 4000) ?? null,
+    isSpoiler,
     letterboxdUrl: url,
   });
 
   // Announce the review in Discord (no-op if no webhook is configured). Only on
-  // new reviews — edits don't re-post, to avoid spamming the channel.
+  // new reviews (edits don't re-post, to avoid spamming the channel).
   const movieRows = await db
     .select({
       title: movies.title,
@@ -278,6 +282,7 @@ export async function addReview(input: {
       posterUrl: movieRows[0].posterUrl,
       rating,
       body,
+      isSpoiler,
       letterboxdUrl: url,
     });
   }
@@ -294,6 +299,7 @@ export async function editReview(input: {
   rating?: number | null;
   body?: string | null;
   letterboxdUrl?: string | null;
+  isSpoiler?: boolean;
 }): Promise<ActionResult> {
   requireDb();
   const name = cleanName(input.name);
@@ -331,6 +337,7 @@ export async function editReview(input: {
     .set({
       rating,
       body: body?.slice(0, 4000) ?? null,
+      isSpoiler: Boolean(input.isSpoiler) && !!body,
       letterboxdUrl: url,
       editedAt: new Date(),
     })
@@ -357,7 +364,7 @@ export async function markWatched(input: {
 }
 
 // Remove a movie from the reel. Allowed for the person who added it (to undo a
-// mistake) or any host. Only pool movies — once picked, a movie stays so History
+// mistake) or any host. Only pool movies; once picked, a movie stays so History
 // is never lost.
 export async function removeMovie(input: {
   name: string;
@@ -376,7 +383,7 @@ export async function removeMovie(input: {
   if (!movie) return { ok: true }; // already gone
 
   if (movie.status !== "pool") {
-    return { ok: false, error: "That movie has already been picked — it stays in history." };
+    return { ok: false, error: "That movie has already been picked, so it stays in history." };
   }
 
   const owns = movie.addedBy.trim().toLowerCase() === name.toLowerCase();

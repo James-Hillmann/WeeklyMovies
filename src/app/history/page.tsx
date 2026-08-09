@@ -5,6 +5,7 @@ import { avatarForName } from "@/lib/discord";
 import { Poster } from "@/components/poster";
 import { Stars } from "@/components/stars";
 import { Avatar } from "@/components/avatar";
+import { SpoilerText } from "@/components/spoiler-text";
 import { SetupNotice } from "@/components/setup-notice";
 import { formatWeekOf } from "@/lib/format";
 
@@ -106,9 +107,16 @@ export default async function HistoryPage() {
                               {r.editedAt ? " (edited)" : ""}
                             </span>
                           </div>
-                          {r.body && (
-                            <p className="text-sm mt-1 whitespace-pre-wrap">{r.body}</p>
-                          )}
+                          {r.body &&
+                            (r.isSpoiler ? (
+                              <SpoilerText
+                                text={r.body}
+                                author={r.author}
+                                reviewerNames={reviews.map((rv) => rv.author)}
+                              />
+                            ) : (
+                              <p className="text-sm mt-1 whitespace-pre-wrap">{r.body}</p>
+                            ))}
                           {r.letterboxdUrl && (
                             <a
                               className="link text-sm mt-1 inline-block"

@@ -321,7 +321,7 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
         {won && showRaw && (
           <div className="mt-3 text-left">
             <p className="text-xs text-[var(--muted)] mb-1">
-              Couldn&apos;t copy automatically — select all and copy this:
+              Couldn&apos;t copy automatically. Select all and copy this:
             </p>
             <textarea
               readOnly

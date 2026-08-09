@@ -28,10 +28,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <NameProvider>
           <header className="border-b">
-            <div className="mx-auto w-full max-w-2xl px-5 py-4 flex items-center justify-between gap-4">
+            <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-4 flex items-center justify-between gap-3">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-xl"
+                className="flex items-center gap-2 text-lg sm:text-xl whitespace-nowrap shrink-0"
                 style={{ fontFamily: "var(--font-serif)" }}
               >
                 <span className="text-[var(--accent)]">
@@ -39,7 +39,7 @@ export default function RootLayout({
                 </span>
                 Weekly Movies
               </Link>
-              <nav className="flex items-center gap-4 text-sm">
+              <nav className="flex items-center gap-3 sm:gap-4 text-sm">
                 <Link href="/" className="hover:underline underline-offset-4">
                   Home
                 </Link>

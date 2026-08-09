@@ -138,12 +138,35 @@ export async function announcePick(movie: {
   });
 }
 
+// Custom star emojis for ratings, e.g. DISCORD_EMOJI_STAR="<:star_full:123...>".
+// All three must be set (full, half, empty) or we fall back to text stars, so
+// the row never mixes image emojis with plain characters.
+function starEmojiSet(): { full: string; half: string; empty: string } | null {
+  const full = process.env.DISCORD_EMOJI_STAR?.trim();
+  const half = process.env.DISCORD_EMOJI_STAR_HALF?.trim();
+  const empty = process.env.DISCORD_EMOJI_STAR_EMPTY?.trim();
+  const ok = (s?: string) => !!s && /^<a?:\w+:\d+>$/.test(s);
+  if (ok(full) && ok(half) && ok(empty)) {
+    return { full: full!, half: half!, empty: empty! };
+  }
+  return null;
+}
+
 function stars(rating: number): string {
-  // 1-10 → out of 5 with a half star (e.g. 9 → ★★★★½).
+  // 1-10 → out of 5 with a half star (e.g. 9 → four and a half stars).
   const outOfFive = rating / 2;
   const full = Math.floor(outOfFive);
   const half = outOfFive - full >= 0.5;
   const empty = 5 - full - (half ? 1 : 0);
+
+  const emoji = starEmojiSet();
+  if (emoji) {
+    return (
+      emoji.full.repeat(full) +
+      (half ? emoji.half : "") +
+      emoji.empty.repeat(empty)
+    );
+  }
   return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
 }
 
@@ -154,6 +177,7 @@ export async function announceReview(input: {
   posterUrl: string | null;
   rating: number | null;
   body: string | null;
+  isSpoiler?: boolean;
   letterboxdUrl: string | null;
 }): Promise<void> {
   const profile = await profileFor(input.author);
@@ -161,7 +185,15 @@ export async function announceReview(input: {
   const parts: string[] = [];
   if (input.rating != null) parts.push(`${stars(input.rating)}  **${input.rating}/10**`);
   const body = trim(input.body, 800);
-  if (body) parts.push(body);
+  if (body) {
+    if (input.isSpoiler) {
+      // The rating shows; the comment hides behind Discord's native spoiler
+      // bar (escape any || in the text so it can't break out early).
+      parts.push(`⚠ Spoiler\n||${body.replaceAll("||", "\\|\\|")}||`);
+    } else {
+      parts.push(body);
+    }
+  }
   if (input.letterboxdUrl) parts.push(`[Letterboxd review](${input.letterboxdUrl})`);
 
   await send({

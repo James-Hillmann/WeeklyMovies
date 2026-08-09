@@ -48,6 +48,7 @@ export default async function MoviePage({
     avatarUrl: avatars.get(r.author.trim().toLowerCase()) ?? null,
     rating: r.rating,
     body: r.body,
+    isSpoiler: r.isSpoiler,
     letterboxdUrl: r.letterboxdUrl,
     createdAt: new Date(r.createdAt).toISOString(),
     editedAt: r.editedAt ? new Date(r.editedAt).toISOString() : null,
@@ -82,11 +83,18 @@ export default async function MoviePage({
               </span>
             </div>
 
+            {/* On larger screens the blurb sits here, under the requester. */}
             {movie.overview && (
-              <p className="text-sm mt-3">{movie.overview}</p>
+              <p className="text-sm mt-3 hidden sm:block">{movie.overview}</p>
             )}
           </div>
         </div>
+
+        {/* On phones the column next to the poster is too narrow for a blurb,
+            so it drops to full width below instead. */}
+        {movie.overview && (
+          <p className="text-sm mt-4 sm:hidden">{movie.overview}</p>
+        )}
       </div>
 
       {watch && watch.stream.length > 0 && (

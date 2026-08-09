@@ -15,6 +15,7 @@ export function ReviewForm({ movieId }: { movieId: string }) {
   const [mode, setMode] = useState<Mode>("write");
   const [rating, setRating] = useState<number | null>(null);
   const [body, setBody] = useState("");
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,13 +31,14 @@ export function ReviewForm({ movieId }: { movieId: string }) {
     setMsg(null);
     const payload =
       mode === "write"
-        ? { movieId, name, rating, body }
+        ? { movieId, name, rating, body, isSpoiler }
         : { movieId, name, letterboxdUrl: url };
     const result = await addReview(payload);
     setBusy(false);
     if (result.ok) {
       setRating(null);
       setBody("");
+      setIsSpoiler(false);
       setUrl("");
       setMsg("Posted. Thanks!");
       router.refresh();
@@ -79,6 +81,19 @@ export function ReviewForm({ movieId }: { movieId: string }) {
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
+            {body.trim() && (
+              <label className="flex items-center gap-2 mt-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isSpoiler}
+                  onChange={(e) => setIsSpoiler(e.target.checked)}
+                />
+                Contains spoilers
+                <span className="text-xs text-[var(--muted)]">
+                  (your comment gets hidden; the rating still shows)
+                </span>
+              </label>
+            )}
           </>
         ) : (
           <input

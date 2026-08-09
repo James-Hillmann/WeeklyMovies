@@ -14,6 +14,7 @@ export type ReviewView = {
   avatarUrl: string | null;
   rating: number | null;
   body: string | null;
+  isSpoiler: boolean;
   letterboxdUrl: string | null;
   createdAt: string; // ISO
   editedAt: string | null; // ISO or null
@@ -40,20 +41,32 @@ export function ReviewList({ reviews }: { reviews: ReviewView[] }) {
       </p>
     );
   }
+  const reviewerNames = reviews.map((r) => r.author);
   return (
     <ul className="space-y-4 mb-6">
       {reviews.map((r) => (
-        <ReviewItem key={r.id} review={r} />
+        <ReviewItem key={r.id} review={r} reviewerNames={reviewerNames} />
       ))}
     </ul>
   );
 }
 
-function ReviewItem({ review }: { review: ReviewView }) {
+function ReviewItem({
+  review,
+  reviewerNames,
+}: {
+  review: ReviewView;
+  reviewerNames: string[];
+}) {
   const { name } = useName();
   const router = useRouter();
-  const mine =
-    !!name && name.trim().toLowerCase() === review.author.trim().toLowerCase();
+  const me = name?.trim().toLowerCase() ?? "";
+  const mine = !!me && me === review.author.trim().toLowerCase();
+  // Spoilers auto-reveal for people who have already seen the movie: the
+  // review's author, and anyone who has reviewed this movie themselves.
+  const seenIt =
+    mine ||
+    (!!me && reviewerNames.some((n) => n.trim().toLowerCase() === me));
 
   const [editing, setEditing] = useState(false);
   const [mode, setMode] = useState<"write" | "letterboxd">(
@@ -61,13 +74,16 @@ function ReviewItem({ review }: { review: ReviewView }) {
   );
   const [rating, setRating] = useState<number | null>(review.rating);
   const [body, setBody] = useState(review.body ?? "");
+  const [isSpoiler, setIsSpoiler] = useState(review.isSpoiler);
   const [url, setUrl] = useState(review.letterboxdUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
 
   function reset() {
     setRating(review.rating);
     setBody(review.body ?? "");
+    setIsSpoiler(review.isSpoiler);
     setUrl(review.letterboxdUrl ?? "");
     setErr(null);
     setEditing(false);
@@ -80,7 +96,7 @@ function ReviewItem({ review }: { review: ReviewView }) {
     setErr(null);
     const payload =
       mode === "write"
-        ? { reviewId: review.id, name, rating, body, letterboxdUrl: null }
+        ? { reviewId: review.id, name, rating, body, isSpoiler, letterboxdUrl: null }
         : { reviewId: review.id, name, rating: null, body: null, letterboxdUrl: url };
     const result = await editReview(payload);
     setBusy(false);
@@ -122,7 +138,23 @@ function ReviewItem({ review }: { review: ReviewView }) {
               <Stars rating={review.rating} />
             </div>
           )}
-          {review.body && <p className="text-sm mt-2 whitespace-pre-wrap">{review.body}</p>}
+          {review.body &&
+            (review.isSpoiler && !revealed && !seenIt ? (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                className="mt-2 w-full text-left text-sm rounded-md border px-3 py-2 text-[var(--muted)] hover:bg-[var(--hover)]"
+              >
+                ⚠ Spoiler. Click to show.
+              </button>
+            ) : (
+              <p className="text-sm mt-2 whitespace-pre-wrap">
+                {review.isSpoiler && (
+                  <span className="text-xs text-[var(--muted)]">⚠ Spoiler · </span>
+                )}
+                {review.body}
+              </p>
+            ))}
           {review.letterboxdUrl && (
             <a
               className="link text-sm mt-2 inline-block"
@@ -165,6 +197,16 @@ function ReviewItem({ review }: { review: ReviewView }) {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />
+              {body.trim() && (
+                <label className="flex items-center gap-2 mt-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSpoiler}
+                    onChange={(e) => setIsSpoiler(e.target.checked)}
+                  />
+                  Contains spoilers
+                </label>
+              )}
             </>
           ) : (
             <input
