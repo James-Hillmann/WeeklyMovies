@@ -127,6 +127,10 @@ export default async function MoviePage({
         </section>
       )}
 
+      {/* The form sits above the list so you don't scroll past everyone
+          else's takes to post your own. */}
+      <ReviewForm movieId={movie.id} />
+
       <section>
         <h2 className="text-lg mb-3">
           Reviews{" "}
@@ -136,8 +140,6 @@ export default async function MoviePage({
         </h2>
 
         <ReviewList reviews={reviewViews} />
-
-        <ReviewForm movieId={movie.id} />
       </section>
     </div>
   );
