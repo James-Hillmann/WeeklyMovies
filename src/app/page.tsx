@@ -7,9 +7,11 @@ import { PoolList } from "@/components/pool-list";
 import { Poster } from "@/components/poster";
 import { Avatar } from "@/components/avatar";
 import { WatchProviders } from "@/components/watch-providers";
+import { Rotation, type RotationView } from "@/components/rotation";
 import { SetupNotice } from "@/components/setup-notice";
 import { formatRuntime } from "@/lib/format";
 import { avatarForName } from "@/lib/discord";
+import { getRotation } from "@/lib/rotation";
 import { getWatchProviders } from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +21,20 @@ export default async function Home() {
     return <SetupNotice />;
   }
 
-  const [current, pool] = await Promise.all([getCurrentMovie(), getPool()]);
+  const [current, pool, rotation] = await Promise.all([
+    getCurrentMovie(),
+    getPool(),
+    getRotation(),
+  ]);
   const requesterAvatar = current ? await avatarForName(current.addedBy) : null;
   const currentWatch =
     current?.tmdbId ? await getWatchProviders(current.tmdbId) : null;
+  const rotationViews: RotationView[] = await Promise.all(
+    rotation.map(async (e) => ({
+      ...e,
+      avatarUrl: await avatarForName(e.name),
+    })),
+  );
 
   return (
     <div className="space-y-12">
@@ -84,6 +96,7 @@ export default async function Home() {
             posterUrl: m.posterUrl,
           }))}
         />
+        <Rotation entries={rotationViews} />
       </section>
 
       {/* Add a movie */}

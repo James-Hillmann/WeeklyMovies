@@ -7,6 +7,7 @@ import { movies, reviews, weeks } from "@/db/schema";
 import { getRuntime } from "@/lib/tmdb";
 import { isHost } from "@/lib/hosts";
 import { announcePick, announceReview, avatarForName } from "@/lib/discord";
+import { computePass } from "@/lib/rotation";
 
 function requireDb() {
   if (!isDbConfigured) {
@@ -119,30 +120,17 @@ export async function spinWheel(input: {
   let candidates = displayed.length > 0 ? displayed : pool.map((m) => m.id);
 
   // Shuffled round-robin: everyone with a movie on the reel gets a turn each
-  // pass, but the order is random per pass (not a predictable rotation).
-  // We rebuild the current pass from the pick history and only allow people
-  // who haven't gone yet this pass; once the pass is full it resets.
+  // pass, but the order is random per pass (not a predictable rotation). The
+  // pass state is rebuilt from pick history by the shared computePass, which
+  // also powers the rotation display on the home page.
   const poolPeople = pool.map((m) => m.addedBy.trim().toLowerCase());
-  const poolPeopleSet = new Set(poolPeople);
   const history = await db
     .select({ person: movies.addedBy })
     .from(weeks)
     .innerJoin(movies, eq(weeks.movieId, movies.id))
     .orderBy(asc(weeks.spunAt)); // oldest first
   const picks = history.map((h) => h.person.trim().toLowerCase());
-  const lastPerson = picks.length ? picks[picks.length - 1] : null;
-
-  const passSoFar = new Set<string>();
-  for (const p of picks) {
-    if (!poolPeopleSet.has(p)) continue; // person has no movies now; ignore
-    if (passSoFar.has(p)) {
-      // Shouldn't normally happen, but if the pool changed and we see a repeat
-      // before the pass filled, treat it as the start of a new pass.
-      passSoFar.clear();
-    }
-    passSoFar.add(p);
-    if (passSoFar.size === poolPeopleSet.size) passSoFar.clear(); // pass complete
-  }
+  const { passSoFar, lastPerson } = computePass(poolPeople, picks);
 
   const eligible = new Set(poolPeople.filter((p) => !passSoFar.has(p)));
   // Don't kick off a fresh pass on the same person who just went, if we can help it.
