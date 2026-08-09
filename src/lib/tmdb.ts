@@ -97,6 +97,30 @@ export async function getRuntime(tmdbId: number): Promise<number | null> {
   }
 }
 
+// The best YouTube trailer for a movie, as a watch URL (or null). Prefers an
+// official trailer, then any trailer, then a teaser.
+export async function getTrailerUrl(tmdbId: number): Promise<string | null> {
+  const key = process.env.TMDB_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(`${API}/movie/${tmdbId}/videos?api_key=${key}`, {
+      next: { revalidate: 60 * 60 * 24 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: Array<{ site: string; type: string; official: boolean; key: string }>;
+    };
+    const yt = (data.results ?? []).filter((v) => v.site === "YouTube" && v.key);
+    const pick =
+      yt.find((v) => v.type === "Trailer" && v.official) ??
+      yt.find((v) => v.type === "Trailer") ??
+      yt.find((v) => v.type === "Teaser");
+    return pick ? `https://www.youtube.com/watch?v=${pick.key}` : null;
+  } catch {
+    return null;
+  }
+}
+
 // Streaming / rent / buy availability (data via JustWatch, per region).
 export type WatchProvider = { name: string; logoUrl: string };
 export type WatchInfo = {

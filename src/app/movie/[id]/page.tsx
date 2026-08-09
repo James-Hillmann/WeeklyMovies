@@ -6,7 +6,7 @@ import { avatarForName } from "@/lib/discord";
 import { Poster } from "@/components/poster";
 import { Avatar } from "@/components/avatar";
 import { WatchProviders } from "@/components/watch-providers";
-import { getWatchProviders, watchRegion } from "@/lib/tmdb";
+import { getTrailerUrl, getWatchProviders, watchRegion } from "@/lib/tmdb";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewList, type ReviewView } from "@/components/review-list";
 import { SetupNotice } from "@/components/setup-notice";
@@ -31,7 +31,9 @@ export default async function MoviePage({
   const movie = await getMovie(id);
   if (!movie) notFound();
 
-  const watch = movie.tmdbId ? await getWatchProviders(movie.tmdbId) : null;
+  const [watch, trailerUrl] = movie.tmdbId
+    ? await Promise.all([getWatchProviders(movie.tmdbId), getTrailerUrl(movie.tmdbId)])
+    : [null, null];
   const reviews = await getReviews(id);
   // Resolve the requester's + each reviewer's Discord photo once.
   const names = [...new Set([movie.addedBy, ...reviews.map((r) => r.author)])];
@@ -56,8 +58,11 @@ export default async function MoviePage({
 
   return (
     <div className="space-y-8">
-      <Link href="/" className="text-sm link">
-        ← Back
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+      >
+        <span aria-hidden>←</span> Back
       </Link>
 
       <div className="card p-5">
@@ -82,6 +87,17 @@ export default async function MoviePage({
                 {movie.addedBy}
               </span>
             </div>
+
+            {trailerUrl && (
+              <a
+                href={trailerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn mt-3 text-sm"
+              >
+                Watch trailer
+              </a>
+            )}
 
             {/* On larger screens the blurb sits here, under the requester. */}
             {movie.overview && (
