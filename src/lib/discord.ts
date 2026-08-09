@@ -1,11 +1,11 @@
 import { formatRuntime } from "./format";
 
 // Discord webhook posting. Plain, no emoji. When a Discord bot token is set we
-// also pull each person's profile photo + accent color so posts are dressed in
-// their Discord identity (names stay their website names).
+// also pull each person's profile photo so posts are dressed in their Discord
+// identity (names stay their website names).
 
-const BRICK = 0x9c3b2e; // fallback color for picks
-const MUTED = 0x8a8275; // fallback color for reviews
+// Every embed uses the site's accent color so posts read as one consistent brand.
+const BRICK = 0x9c3b2e;
 
 // Pick the webhook by which database we're talking to, so a spin on the
 // throwaway test DB can never land in the real channel.
@@ -31,15 +31,15 @@ function discordId(name: string): string | null {
   return null;
 }
 
-type Profile = { iconUrl?: string; color?: number };
+type Profile = { iconUrl?: string };
 
 // Small in-process cache so we don't refetch a profile on every post.
 const profileCache = new Map<string, { at: number; profile: Profile }>();
 const PROFILE_TTL = 60 * 60 * 1000; // 1h
 
-// Look up a person's Discord avatar + accent color by their website name.
-// Needs DISCORD_BOT_TOKEN (the bot doesn't need to be in your server); returns
-// {} if there's no token, no mapping, or the lookup fails.
+// Look up a person's Discord avatar by their website name. Needs
+// DISCORD_BOT_TOKEN (the bot doesn't need to be in your server); returns {}
+// if there's no token, no mapping, or the lookup fails.
 async function profileFor(name: string): Promise<Profile> {
   const id = discordId(name);
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -57,19 +57,13 @@ async function profileFor(name: string): Promise<Profile> {
     });
     clearTimeout(timer);
     if (!res.ok) return {};
-    const u = (await res.json()) as {
-      avatar: string | null;
-      accent_color?: number | null;
-    };
+    const u = (await res.json()) as { avatar: string | null };
     const iconUrl = u.avatar
       ? `https://cdn.discordapp.com/avatars/${id}/${u.avatar}.${
           u.avatar.startsWith("a_") ? "gif" : "png"
         }?size=128`
       : undefined;
-    const profile: Profile = {
-      iconUrl,
-      color: typeof u.accent_color === "number" ? u.accent_color : undefined,
-    };
+    const profile: Profile = { iconUrl };
     profileCache.set(id, { at: Date.now(), profile });
     return profile;
   } catch {
@@ -127,7 +121,7 @@ export async function announcePick(movie: {
         },
         title: movie.year ? `${movie.title} (${movie.year})` : movie.title,
         description: trim(movie.overview, 400),
-        color: profile.color ?? BRICK,
+        color: BRICK,
         fields: rt ? [{ name: "Runtime", value: rt, inline: true }] : [],
         // Large poster (a higher-res crop than the small thumbnail) for the pick.
         image: movie.posterUrl
@@ -207,7 +201,7 @@ export async function announceReview(input: {
           ? `${input.movieTitle} (${input.movieYear})`
           : input.movieTitle,
         description: parts.join("\n\n") || undefined,
-        color: profile.color ?? MUTED,
+        color: BRICK,
         thumbnail: input.posterUrl ? { url: input.posterUrl } : undefined,
       },
     ],

@@ -4,34 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useName } from "./name-provider";
 import { checkHost, spinWheel, commitPick } from "@/app/actions";
-import { formatRuntime } from "@/lib/format";
 
 type PoolMovie = { id: string; title: string; posterUrl: string | null };
-
-type WonInfo = {
-  title: string;
-  year: number | null;
-  runtime: number | null;
-  posterUrl: string | null;
-  addedBy: string;
-};
-
-// The Design 3 ("hype") Discord message the roller copies into the channel.
-// Bare URLs so Discord shows the poster inline; `-#` renders as small subtext.
-function discordMessage(won: WonInfo): string {
-  const titlePart = won.year ? `**${won.title}** (${won.year})` : `**${won.title}**`;
-  const meta = [formatRuntime(won.runtime), `requested by ${won.addedBy}`]
-    .filter(Boolean)
-    .join(" · ");
-  const lines = [
-    "**THE REEL HAS SPOKEN**",
-    `This week we're watching ${titlePart}`,
-    `-# ${meta}`,
-    "Watch by Sunday, then rate it on the site.",
-  ];
-  if (won.posterUrl) lines.push(won.posterUrl);
-  return lines.join("\n");
-}
 
 const CARD_W = 116;
 const CARD_H = 174;
@@ -50,9 +24,7 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
   const [translate, setTranslate] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [won, setWon] = useState<WonInfo | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [showRaw, setShowRaw] = useState(false);
+  const [won, setWon] = useState<string | null>(null); // winner title
   // While spinning/landed we render a frozen snapshot so a background refresh
   // (which removes the winner from the pool) can't snap the reel away.
   const [spinPool, setSpinPool] = useState<PoolMovie[] | null>(null);
@@ -82,8 +54,6 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
     setSpinning(true);
     setMsg(null);
     setWon(null);
-    setCopied(false);
-    setShowRaw(false);
 
     const poolIds = snapshot.map((m) => m.id);
     const result = await spinWheel({ name, poolIds });
@@ -95,20 +65,12 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
       return;
     }
 
-    const winnerInfo: WonInfo = {
-      title: result.title,
-      year: result.year,
-      runtime: result.runtime,
-      posterUrl: result.posterUrl,
-      addedBy: result.addedBy,
-    };
-
     if (result.index < 0) {
       // Client was out of date; just commit + reveal + refresh (no animation).
       await commitPick({ name, movieId: result.movieId });
       setSpinning(false);
       setSpinPool(null);
-      setWon(winnerInfo);
+      setWon(result.title);
       router.refresh();
       return;
     }
@@ -139,46 +101,9 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
     window.setTimeout(async () => {
       await commitPick({ name, movieId: result.movieId });
       setSpinning(false);
-      setWon(winnerInfo);
+      setWon(result.title);
       router.refresh();
     }, SPIN_MS + 150);
-  }
-
-  async function copyMessage() {
-    if (!won) return;
-    const text = discordMessage(won);
-    let ok = false;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        ok = true;
-      }
-    } catch {
-      ok = false;
-    }
-    if (!ok) {
-      // Fallback for browsers/contexts where the async clipboard is blocked.
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-      } catch {
-        ok = false;
-      }
-    }
-    if (ok) {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } else {
-      // Last resort: show the text so it can be selected and copied by hand.
-      setShowRaw(true);
-    }
   }
 
   if (n === 0) {
@@ -295,42 +220,21 @@ export function Wheel({ pool }: { pool: PoolMovie[] }) {
       <div className="mt-5 text-center min-h-[2.5rem]">
         {won ? (
           <p className="mb-2">
-            This week&apos;s pick: <strong>{won.title}</strong>
+            This week&apos;s pick: <strong>{won}</strong>
           </p>
         ) : null}
-        <div className="flex items-center justify-center gap-2">
-          {canSpin ? (
-            <button className="btn btn-accent" onClick={spin} disabled={spinning}>
-              {spinning ? "Spinning…" : won ? "Spin again" : "Spin the reel"}
-            </button>
-          ) : name ? (
-            <p className="text-sm text-[var(--muted)]">
-              Waiting on a host to spin this week&apos;s pick.
-            </p>
-          ) : (
-            <p className="text-sm text-[var(--muted)]">
-              Set your name up top. Hosts get the spin button.
-            </p>
-          )}
-          {won && !spinning && (
-            <button className="btn" onClick={copyMessage}>
-              {copied ? "Copied!" : "Copy Discord message"}
-            </button>
-          )}
-        </div>
-        {won && showRaw && (
-          <div className="mt-3 text-left">
-            <p className="text-xs text-[var(--muted)] mb-1">
-              Couldn&apos;t copy automatically. Select all and copy this:
-            </p>
-            <textarea
-              readOnly
-              className="input font-mono text-xs"
-              rows={5}
-              value={discordMessage(won)}
-              onFocus={(e) => e.currentTarget.select()}
-            />
-          </div>
+        {canSpin ? (
+          <button className="btn btn-accent" onClick={spin} disabled={spinning}>
+            {spinning ? "Spinning…" : won ? "Spin again" : "Spin the reel"}
+          </button>
+        ) : name ? (
+          <p className="text-sm text-[var(--muted)]">
+            Waiting on a host to spin this week&apos;s pick.
+          </p>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Set your name up top. Hosts get the spin button.
+          </p>
         )}
         {msg && !won && <p className="mt-2 text-sm text-[var(--muted)]">{msg}</p>}
       </div>
