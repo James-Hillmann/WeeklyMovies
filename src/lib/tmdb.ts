@@ -15,6 +15,7 @@ export type TmdbResult = {
   posterUrl: string | null;
   overview: string | null;
   director: string | null;
+  cast: string[];
 };
 
 export function tmdbConfigured(): boolean {
@@ -56,28 +57,37 @@ export async function searchMovies(query: string): Promise<TmdbResult[]> {
     overview: m.overview?.trim() || null,
   }));
 
-  // Director isn't in search results, so look it up per result (in parallel)
-  // to help tell same-title films and remakes apart.
+  // Director and cast aren't in search results, so look them up per result
+  // (in parallel) to help tell same-title films and remakes apart.
   return Promise.all(
-    base.map(async (m) => ({ ...m, director: await getDirector(m.tmdbId) })),
+    base.map(async (m) => ({ ...m, ...(await getCredits(m.tmdbId)) })),
   );
 }
 
-export async function getDirector(tmdbId: number): Promise<string | null> {
+// One credits call per movie yields both the director and the top-billed cast.
+export async function getCredits(
+  tmdbId: number,
+): Promise<{ director: string | null; cast: string[] }> {
   const key = process.env.TMDB_API_KEY;
-  if (!key) return null;
+  if (!key) return { director: null, cast: [] };
   try {
     const res = await fetch(`${API}/movie/${tmdbId}/credits?api_key=${key}`, {
       next: { revalidate: 0 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { director: null, cast: [] };
     const data = (await res.json()) as {
+      cast?: Array<{ name: string; order?: number }>;
       crew?: Array<{ job: string; name: string }>;
     };
     const director = data.crew?.find((c) => c.job === "Director");
-    return director?.name ?? null;
+    const cast = (data.cast ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
+      .slice(0, 4)
+      .map((c) => c.name);
+    return { director: director?.name ?? null, cast };
   } catch {
-    return null;
+    return { director: null, cast: [] };
   }
 }
 
